@@ -6,6 +6,14 @@
 
 #include "Message.h"
 
+// ------------------------------------
+// SGX related stuff
+#include "Enclave_u.h"
+#include "sgx_urts.h"
+#include "sgx_utils/sgx_utils.h"
+// ------------------------------------
+
+// ------------------------------------
 // Salticidae related stuff
 #include <memory>
 #include <cstdio>
@@ -14,6 +22,7 @@
 #include "salticidae/event.h"
 #include "salticidae/network.h"
 #include "salticidae/stream.h"
+// ------------------------------------
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -48,6 +57,10 @@ class Handler {
 
   // used to print debugging info
   std::string nfo();
+
+  // SGX functions
+  COUNT callTEEadd();
+  int initializeSGX();
 
   // Handlers
   void handle_ping(Ping msg, const PeerNet::conn_t &conn);

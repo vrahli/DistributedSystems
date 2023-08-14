@@ -4,8 +4,39 @@
 
 
 #include "config.h"
-#include "Handler.h"
 #include "Nodes.h"
+#include "Handler.h"
+
+
+// ------------------------------------
+// SGX related stuff
+/* Global EID shared by multiple threads */
+sgx_enclave_id_t global_eid = 0;
+
+int Handler::initializeSGX() {
+  // Initializing enclave
+  if (initialize_enclave(&global_eid, "enclave.token", "enclave.signed.so") < 0) {
+    std::cout << nfo() << "Failed to initialize enclave" << std::endl;
+    return 1;
+  }
+  if (DEBUG) std::cout << KBLU << nfo() << "initialized enclave" << KNRM << std::endl;
+
+  return 0;
+}
+
+// OCalls
+void ocall_print(const char* str) { printf("%s\n", str); }
+
+// ECalls
+COUNT Handler::callTEEadd() {
+  COUNT ci = 1;
+  COUNT co = 0;
+  sgx_status_t ret;
+  sgx_status_t status = TEEadd(global_eid, &ret, &ci, &co);
+  return co;
+}
+// ------------------------------------
+
 
 std::string Handler::nfo() { return "[" + std::to_string(this->myid) + "]"; }
 
@@ -17,6 +48,9 @@ Handler::Handler(PID id, unsigned int numNodes, PeerNet::Config pconf, ClientNet
 pnet(pec,pconf), cnet(cec,cconf) {
   this->myid     = id;
   this->numNodes = numNodes;
+
+  // -- SGX
+  initializeSGX();
 
   // -- Salticidae
   req_tcall = new salticidae::ThreadCall(cec);
@@ -131,6 +165,8 @@ void Handler::handle_ping(Ping msg, const PeerNet::conn_t &conn) {
   if (DEBUG) std::cout << KBLU << nfo() << "handle_ping" << KNRM << std::endl;
   numPings++;
   if (DEBUG) std::cout << KBLU << nfo() << "received " << numPings  << " pings" << KNRM << std::endl;
+  COUNT c = callTEEadd();
+  if (DEBUG) std::cout << KBLU << nfo() << "counter: " <<  c << KNRM << std::endl;
   if (numPings == this->numNodes - 1) {
     // if received pings from all other nodes we send a reply to the client
     if (DEBUG) std::cout << KBLU << nfo() << "received enough pings to reply to the client" << KNRM << std::endl;

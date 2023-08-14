@@ -22,11 +22,10 @@ so that you can run Docker as a non-root user.
 
 Create the Docker image:
 
-`docker build -t test`
+`docker build -t test .`
 
 Run
 
 `python3 test.py --servers N`
 
 where `N` is the number of servers you want to use.
-

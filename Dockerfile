@@ -73,9 +73,9 @@ RUN cd /opt/intel/linux-sgx/external/dcap_source/QuoteVerification/sgxssl/Linux 
 # Copy the current directory contents into the container at /app
 COPY Makefile       /app
 COPY test.py        /app
-#COPY enclave.token  /app
+COPY enclave.token  /app
 COPY App            /app/App
-#COPY Enclave        /app/Enclave
+COPY Enclave        /app/Enclave
 
 RUN cd /app \
     && git clone https://github.com/Determinant/salticidae.git \

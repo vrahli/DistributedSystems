@@ -9,7 +9,7 @@ import argparse
 
 docker        = "docker"
 dockerBase    = "test"  # name of the docker container
-useSGX        = False
+useSGX        = True
 ncores        = multiprocessing.cpu_count()  # number of cores to use to make
 numServers    = 4
 numClients    = 1
@@ -129,10 +129,11 @@ def mkApp():
     edstx     = instancex + ":/app/Enclave/"
     subprocess.run([docker + " cp Makefile "  + instancex + ":/app/"], shell=True, check=True)
     subprocess.run([docker + " cp App/. "     + adstx], shell=True, check=True)
-    #subprocess.run([docker + " cp Enclave/. " + edstx], shell=True, check=True)
+    subprocess.run([docker + " cp Enclave/. " + edstx], shell=True, check=True)
     subprocess.run([docker + " exec -t " + instancex + " bash -c \"make clean\""], shell=True, check=True)
     if useSGX:
-        subprocess.run([docker + " exec -t " + instancex + " bash -c \"" + srcsgx + "; make -j " + str(ncores) + " SGX_MODE=" + sgxmode + "\""], shell=True, check=True)
+        cmd = docker + " exec -t " + instancex + " bash -c \"" + "ls /app/; " + srcsgx + "; make -j " + str(ncores) + " SGX_MODE=" + sgxmode + "\""
+        subprocess.run([cmd], shell=True, check=True)
     else:
         subprocess.run([docker + " exec -t " + instancex + " bash -c \"make -j " + str(ncores) + " server client\""], shell=True, check=True)
 
@@ -165,7 +166,7 @@ def execute():
 
     print(">>>>>>>>>>>>>>>>>>> starting servers")
     for i in range(numServers):
-        cmd = " ".join(["./server", str(i), str(numServers)])
+        cmd = " ".join(["./sgxserver", str(i), str(numServers)])
         dockerInstance = dockerBase + str(i)
         if useSGX:
             cmd = srcsgx + "; " + cmd
@@ -176,7 +177,7 @@ def execute():
 
     print(">>>>>>>>>>>>>>>>>>> starting clients")
     for i in range(numClients):
-        cmd = " ".join(["./client", str(i), str(numServers)])
+        cmd = " ".join(["./sgxclient", str(i), str(numServers)])
         dockerInstance = dockerBase + "c" + str(i)
         if useSGX:
             cmd = srcsgx + "; " + cmd

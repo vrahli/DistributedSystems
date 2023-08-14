@@ -5,6 +5,9 @@
 
 #include "config.h"
 
+typedef unsigned int PORT;
+typedef std::string HOST;
+
 struct NodeInfo {
   PID pid;
   HOST host;

@@ -15,8 +15,7 @@
 typedef unsigned int PID; // process ids
 typedef unsigned int CID; // client ids
 typedef unsigned int VAL; // payload
-typedef unsigned int PORT;
-typedef std::string HOST;
+typedef unsigned int COUNT;
 
 
 // ----------------------------------------
