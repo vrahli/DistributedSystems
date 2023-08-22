@@ -2,10 +2,13 @@ enclave {
     from "sgx_tsgxssl.edl" import *;
 
     include "../App/config.h"
+    include "../App/types.h"
 
     trusted {
         /* define ECALLs here. */
         public sgx_status_t TEEadd([in] COUNT *j, [out] COUNT *c);
+        public sgx_status_t TEEsign([in] payload_t *p, [out] auth_t *res);
+        public sgx_status_t TEEverify([in] payload_t *p, [in] auth_t *a, [out] bool *res);
     };
 
     untrusted {

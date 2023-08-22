@@ -8,6 +8,11 @@
 #include "Handler.h"
 
 
+void setPayload(std::string s, payload_t *p) {
+  p->size=s.size();
+  memcpy(p->data,s.c_str(),s.size()); // MAX_SIZE_PAYLOAD
+}
+
 // ------------------------------------
 // SGX related stuff
 /* Global EID shared by multiple threads */
@@ -34,6 +39,24 @@ COUNT Handler::callTEEadd() {
   sgx_status_t ret;
   sgx_status_t status = TEEadd(global_eid, &ret, &ci, &co);
   return co;
+}
+
+auth_t Handler::callTEEsign(std::string s) {
+  payload_t p;
+  setPayload(s, &p);
+  auth_t a;
+  sgx_status_t ret;
+  sgx_status_t status = TEEsign(global_eid, &ret, &p, &a);
+  return a;
+}
+
+bool Handler::callTEEverify(std::string s, auth_t a) {
+  payload_t p;
+  setPayload(s, &p);
+  bool b = false;
+  sgx_status_t ret;
+  sgx_status_t status = TEEverify(global_eid, &ret, &p, &a, &b);
+  return b;
 }
 // ------------------------------------
 
@@ -165,8 +188,15 @@ void Handler::handle_ping(Ping msg, const PeerNet::conn_t &conn) {
   if (DEBUG) std::cout << KBLU << nfo() << "handle_ping" << KNRM << std::endl;
   numPings++;
   if (DEBUG) std::cout << KBLU << nfo() << "received " << numPings  << " pings" << KNRM << std::endl;
-  COUNT c = callTEEadd();
-  if (DEBUG) std::cout << KBLU << nfo() << "counter: " <<  c << KNRM << std::endl;
+
+  // -- Testing the SGX functions --
+  COUNT  c  = callTEEadd();
+  auth_t a  = callTEEsign("test");
+  bool   b1 = callTEEverify("test",a);
+  bool   b0 = callTEEverify("foo",a);
+  if (DEBUG) std::cout << KBLU << nfo() << "SGX info - counter: " <<  c << "; verify(1):" << b1 << "; verify(0):" << b0 << KNRM << std::endl;
+  // -- --
+
   if (numPings == this->numNodes - 1) {
     // if received pings from all other nodes we send a reply to the client
     if (DEBUG) std::cout << KBLU << nfo() << "received enough pings to reply to the client" << KNRM << std::endl;

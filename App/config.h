@@ -9,8 +9,9 @@
 #define HDR_PING  0x1
 #define HDR_REPLY 0x2
 
-#define MAXLINE   256
-#define DEBUG     true
+#define MAX_SIZE_PAYLOAD 4096 // TODO: change that to something sensible
+#define MAXLINE          256
+#define DEBUG            true
 
 typedef unsigned int PID; // process ids
 typedef unsigned int CID; // client ids

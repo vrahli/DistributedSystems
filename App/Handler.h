@@ -5,6 +5,7 @@
 #include <map>
 
 #include "Message.h"
+#include "types.h"
 
 // ------------------------------------
 // SGX related stuff
@@ -60,6 +61,8 @@ class Handler {
 
   // SGX functions
   COUNT callTEEadd();
+  auth_t callTEEsign(std::string s);
+  bool callTEEverify(std::string s, auth_t a);
   int initializeSGX();
 
   // Handlers
