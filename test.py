@@ -126,9 +126,11 @@ def mkApp():
     # make 1 instance: the "x" instance
     instancex = dockerBase + "x"
     adstx     = instancex + ":/app/App/"
+    adstx     = instancex + ":/app/Include/"
     edstx     = instancex + ":/app/Enclave/"
     subprocess.run([docker + " cp Makefile "  + instancex + ":/app/"], shell=True, check=True)
     subprocess.run([docker + " cp App/. "     + adstx], shell=True, check=True)
+    subprocess.run([docker + " cp Include/. " + adstx], shell=True, check=True)
     subprocess.run([docker + " cp Enclave/. " + edstx], shell=True, check=True)
     subprocess.run([docker + " exec -t " + instancex + " bash -c \"make clean\""], shell=True, check=True)
     if useSGX:

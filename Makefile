@@ -32,7 +32,7 @@
 ######## My Settings ########
 
 SALTICIDAE=$(realpath ./salticidae)
-Salticidae_Include_Paths = -I$(SALTICIDAE)/include
+Salticidae_Include_Paths = -I$(realpath .)/Include -I$(SALTICIDAE)/include
 Salticidae_Lib_Paths = -L$(SALTICIDAE)/lib
 
 #LOCAL=${HOME}/.local
@@ -107,7 +107,7 @@ Nsgx_App_Cpp_Files := $(wildcard App/*.cpp)
 Nsgx_App_Cpp_Files := $(filter-out App/Client.cpp App/Server.cpp, $(Nsgx_App_Cpp_Files))
 # Includes SGX files
 App_Cpp_Files :=  $(Nsgx_App_Cpp_Files) App/sgx_utils/sgx_utils.cpp
-App_Include_Paths := -IApp -I$(SGX_SDK)/include $(Salticidae_Include_Paths) # -I$(SGXSSL_INCLUDE_PATH)
+App_Include_Paths := -IApp -I$(SGX_SDK)/include $(Salticidae_Include_Paths) -I$(SGXSSL_INCLUDE_PATH) -I$(SGXSSL_INCLUDE_PATH)nofilefunc
 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
@@ -124,6 +124,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) -std=c++14 $(CFLAGS)
+#App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -L$(SGXSSL_UNTRUSTED_LIB_PATH) -lsgx_usgxssl $(LDLIBS) $(Salticidae_Lib_Paths) -lsalticidae
 App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -L$(SGXSSL_UNTRUSTED_LIB_PATH) -lsgx_usgxssl $(LDLIBS) $(Salticidae_Lib_Paths) -lsalticidae
 # -lpthread
 
@@ -216,7 +217,7 @@ client: App/Client.o App/Nodes.o
 ######## App Objects ########
 
 App/Enclave_u.c: $(SGX_EDGER8R) Enclave/Enclave.edl
-	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path $(SGXSSL_INCLUDE_PATH)
+	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path $(SGXSSL_INCLUDE_PATH) --search-path $(SGXSSL_INCLUDE_PATH)nofilefunc
 	@echo "GEN  =>  $@"
 
 App/Enclave_u.o: App/Enclave_u.c
@@ -239,7 +240,7 @@ sgxclient: App/Client.cpp App/Nodes.o
 ######## Enclave Objects ########
 
 Enclave/Enclave_t.c: $(SGX_EDGER8R) Enclave/Enclave.edl
-	@cd Enclave && $(SGX_EDGER8R) --trusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path $(SGXSSL_INCLUDE_PATH)
+	@cd Enclave && $(SGX_EDGER8R) --trusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path $(SGXSSL_INCLUDE_PATH) --search-path $(SGXSSL_INCLUDE_PATH)nofilefunc
 	@echo "GEN  =>  $@"
 
 Enclave/Enclave_t.o: Enclave/Enclave_t.c

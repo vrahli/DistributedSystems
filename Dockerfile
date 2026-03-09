@@ -1,6 +1,6 @@
 # Use an official ocaml runtime as a parent image
-# Install focal
-FROM ubuntu:20.04
+# Install jammy
+FROM ubuntu:22.04
 
 EXPOSE 80/tcp
 
@@ -14,56 +14,48 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y apt-utils git wget iptables libdevmapper1.02.1 \
     && apt-get install -y build-essential ocaml ocamlbuild automake autoconf libtool python-is-python3 libssl-dev git cmake perl \
-    && apt-get install -y libcurl4-openssl-dev protobuf-compiler libprotobuf-dev debhelper reprepro unzip build-essential python \
-    && apt-get install -y lsb-release software-properties-common \
-    && apt-get install -y pkg-config libuv1-dev python3-matplotlib \
-    && apt-get install -y emacs psmisc jq iproute2
-
-# install a newer version of openssl
-RUN wget https://www.openssl.org/source/openssl-1.1.1i.tar.gz \
-    && tar -xvzf openssl-1.1.1i.tar.gz \
-    && cd openssl-1.1.1i \
-    && ./config --prefix=/usr no-mdc2 no-idea \
-    && make \
-    && make install
+    && apt-get install -y libssl-dev libcurl4-openssl-dev protobuf-compiler libprotobuf-dev debhelper cmake reprepro unzip pkgconf libboost-dev libboost-system-dev libboost-thread-dev lsb-release libsystemd0 \
+    && apt-get install -y libcurl4-openssl-dev protobuf-compiler libprotobuf-dev debhelper reprepro unzip build-essential python3 \
+    && apt-get install -y lsb-release software-properties-common pkg-config libuv1-dev python3-matplotlib emacs psmisc jq iproute2 stress-ng
 
 # clone sgx sdk
 RUN mkdir /opt/intel \
     && cd /opt/intel \
-    && git clone https://github.com/intel/linux-sgx \
-    && cd linux-sgx \
-    && git checkout -b sgx2.13 73b8b57aea306d1633cc44a2efc40de6f4217364
-# this version seems to work on non-sgx machines...
+    && git clone https://github.com/intel/linux-sgx
 
 # build sdk
 RUN cd /opt/intel/linux-sgx \
-    && make preparation
-RUN cd /opt/intel/linux-sgx/external/toolset/ubuntu20.04 \
-    && cp as /usr/local/bin \
-    && cp ld /usr/local/bin \
-    && cp ld.gold /usr/local/bin \
-    && cp objdump /usr/local/bin
-RUN cd /opt/intel/linux-sgx \
+    && make preparation \
     && make sdk \
     && make sdk_install_pkg
+# Do we need this even though this is an ubuntu 22.04?
+# Does it need to be right after make preparation?
+#    && cp /opt/intel/linux-sgx/external/toolset/ubuntu20.04/* /usr/local/bin \
 
 # install SDK
 RUN cd /opt/intel/linux-sgx/linux/installer/bin \
-    && echo -e "no\n/opt/intel\n" | ./sgx_linux_x64_sdk_2.13.100.4.bin \
-    && . /opt/intel/sgxsdk/environment
+    && echo -e "no\n/opt/intel\n" | ./"$(ls *.bin)"
+#    The file name changes from one version to another
+#    && echo -e "no\n/opt/intel\n" | ./sgx_linux_x64_sdk_2.25.100.3.bin
 
 # build PSW
 RUN mkdir /etc/init
-RUN . /opt/intel/sgxsdk/environment && cd /opt/intel/linux-sgx && make psw
-RUN . /opt/intel/sgxsdk/environment && cd /opt/intel/linux-sgx && make deb_psw_pkg
-RUN . /opt/intel/sgxsdk/environment && cd /opt/intel/linux-sgx && make deb_local_repo
-#RUN add-apt-repository "deb [trusted=yes arch=amd64] file:/opt/intel/linux-sgx/linux/installer/deb/sgx_debian_local_repo focal main"; exit 0
-RUN echo "deb [trusted=yes arch=amd64] file:/opt/intel/linux-sgx/linux/installer/deb/sgx_debian_local_repo focal main" >> /etc/apt/sources.list
-RUN echo "# deb-src [trusted=yes arch=amd64] file:/opt/intel/linux-sgx/linux/installer/deb/sgx_debian_local_repo focal main" >> /etc/apt/sources.list
+RUN . /opt/intel/sgxsdk/environment \
+    && cd /opt/intel/linux-sgx \
+    && make psw \
+    && make deb_psw_pkg \
+    && make deb_local_repo
+RUN echo "deb [trusted=yes arch=amd64] file:/opt/intel/linux-sgx/linux/installer/deb/sgx_debian_local_repo jammy main" >> /etc/apt/sources.list
+RUN echo "# deb-src [trusted=yes arch=amd64] file:/opt/intel/linux-sgx/linux/installer/deb/sgx_debian_local_repo jammy main" >> /etc/apt/sources.list
 RUN apt update
 
 # install psw
-RUN apt-get install -y libsgx-launch libsgx-urts libsgx-epid libsgx-quote-ex libsgx-dcap-ql
+#ARG CACHE_BUST=1
+#RUN apt-cache search libsgx
+#RUN dpkg -l | grep emacs
+#RUN dpkg -l | grep libsgx
+#RUN apt-get install -y libsgx-launch libsgx-epid
+RUN apt-get install -y libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
 RUN cd /opt/intel/linux-sgx/external/dcap_source/QuoteVerification/sgxssl/Linux \
     && ./build_openssl.sh \
@@ -76,9 +68,11 @@ COPY test.py        /app
 COPY enclave.token  /app
 COPY App            /app/App
 COPY Enclave        /app/Enclave
+COPY Include        /app/Include
 
 RUN cd /app \
     && git clone https://github.com/Determinant/salticidae.git \
+    && cp Include/crypto.h salticidae/include/salticidae/ \
     && cd salticidae \
     && cmake . -DCMAKE_INSTALL_PREFIX=. \
     && make \
@@ -102,3 +96,6 @@ CMD ["/bin/bash"]
 #### run container: docker run -td --expose=8000-9999 --network="host" --name test0 test
 #### (alternatively) run container in interactive mode: docker container run -it test /bin/bash
 #### docker exec -t test0 bash -c "source /opt/intel/sgxsdk/environment; make"
+
+
+#### This was tested with the sgx-sdk Commit 5e63c02
